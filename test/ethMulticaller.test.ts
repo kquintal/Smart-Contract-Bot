@@ -1,11 +1,11 @@
-import dotenv from 'dotenv-flow'
 import { Vault } from '@arcxgame/contracts/dist/arc-types/sapphireCore'
 import { SapphireCoreV1Factory } from '@arcxgame/contracts/dist/src/typings'
 import chai from 'chai'
+import dotenv from 'dotenv-flow'
+import { solidity } from 'ethereum-waffle'
 import { BigNumber, providers } from 'ethers'
 import ethMulticaller from '../src/lib/ethMulticaller'
 import { loadContract } from '../src/lib/loadContracts'
-import { solidity } from 'ethereum-waffle'
 
 chai.use(solidity)
 const expect = chai.expect

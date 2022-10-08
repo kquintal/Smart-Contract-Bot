@@ -36,9 +36,7 @@ class Logger {
 
   error(...args: any[]) {
     console.error(...args)
-    this._postDiscord(
-      '<@333338999873863682> An error occured, please have a look at me 🙏\nhttps://console.cloud.google.com/logs/query;query=%2528error_group%2528%22CM6_3c-J3YCF7wE%22%2529%20OR%20error_group%2528%22CJWauNzGipqzhwE%22%2529%2529%0Atimestamp%3E%3D%222022-06-13T08:13:13%2B00:00%22;summaryFields=:false:32:beginning:false;cursorTimestamp=2022-06-13T17:24:42Z?authuser=1&project=sapphire-312006',
-    )
+    this._postDiscord(`<@${process.env.DISCORD_NOTIFICATION_ID}> An unexpected error occured, please have a look 🙏\n ${args}`)
   }
 
   private _postDiscord(content: string) {

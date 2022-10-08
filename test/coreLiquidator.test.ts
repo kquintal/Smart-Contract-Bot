@@ -1,17 +1,14 @@
-import dotenv from 'dotenv-flow'
-import CoreLiquidator from '../src/coreLiquidator'
-import { expect } from 'chai'
 import { SapphireArc } from '@arcxgame/contracts/dist/src/SapphireArc'
-import { loadContract } from '../src/lib/loadContracts'
+import { expect } from 'chai'
 import { providers, Wallet } from 'ethers'
-
-dotenv.config()
-
-// A liquidation is available at block 28556222
+import CoreLiquidator from '../src/coreLiquidator'
+import { loadContract } from '../src/lib/loadContracts'
 
 describe('CoreLiquidator', () => {
   let provider: providers.JsonRpcProvider
   let liquidator: CoreLiquidator
+  const lastKnowLiquidationBlock = 28556222
+
 
   before(async () => {
     provider = new providers.JsonRpcProvider(process.env.POLYGON_RPC_URL)
@@ -30,7 +27,7 @@ describe('CoreLiquidator', () => {
      * Manually set the block to the contract creation number since provider.getTransactionReceipt()
      * doesn't work with the MockProvider
      */
-    liquidator.lastBlockScanned = 26815547
+    liquidator.lastBlockScanned = lastKnowLiquidationBlock
   })
 
   it('populates the known borrowers', async () => {

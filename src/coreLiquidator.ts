@@ -1,16 +1,15 @@
 // import { PassportScoreProof } from '@arcxgame/contracts/dist/arc-types/sapphireCore'
-import { delay } from './lib/delay'
-import logger from './lib/logger'
+import { PassportScoreProof } from '@arcxgame/contracts/dist/arc-types/sapphireCore'
 import { SapphireCoreContracts } from '@arcxgame/contracts/dist/src/SapphireArc'
+import { BaseERC20Factory, FlashLiquidatorFactory } from '@arcxgame/contracts/dist/src/typings'
 import { Filter } from '@ethersproject/abstract-provider'
 import { BigNumber, ContractTransaction, utils } from 'ethers'
 import { checkLiquidatable } from './helpers/checkLiquidatable'
-import { PassportScoreProof } from '@arcxgame/contracts/dist/arc-types/sapphireCore'
-import _ from 'lodash'
+import { delay } from './lib/delay'
 import ethMulticaller from './lib/ethMulticaller'
-import { CoreParameters } from './types/coreParameters'
 import { loadContract } from './lib/loadContracts'
-import { BaseERC20Factory, FlashLiquidatorFactory } from '@arcxgame/contracts/dist/src/typings'
+import logger from './lib/logger'
+import { CoreParameters } from './types/coreParameters'
 
 export default class CoreLiquidator {
   knownBorrowers: string[] = []
@@ -32,7 +31,7 @@ export default class CoreLiquidator {
       const contractCreationTxReceipt = await provider.getTransactionReceipt(
         this._contractCreationTx,
       )
-      this.lastBlockScanned = contractCreationTxReceipt.blockNumber
+      this.lastBlockScanned = contractCreationTxReceipt?.blockNumber
     }
   }
 
@@ -219,7 +218,7 @@ export default class CoreLiquidator {
 
     if (balance.lt(utils.parseEther('0.5'))) {
       logger.info(
-        `<@333338999873863682> I have less than 0.5 MATIC (currently at ${utils.formatEther(
+        `<@${process.env.DISCORD_NOTIFICATION_ID}> I have less than 0.5 MATIC (currently at ${utils.formatEther(
           balance,
         )}). Please top me up sempai 😩!`,
       )

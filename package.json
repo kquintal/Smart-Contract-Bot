@@ -1,25 +1,21 @@
 {
-  "name": "@arcxmoney/sapphire-liquidator",
+  "name": "exterminator",
   "version": "1.0.0",
-  "description": "Microservice to liquidate ARCx Sapphire vaults",
+  "description": "Instance that exterminates positions in DeFi",
   "main": "build/src/index.js",
   "scripts": {
     "build": "rm -rf build/ && tsc",
     "start": "node build/src/index.js",
     "go": "NODE_ENV=local nodemon --signal SIGTERM",
-    "test": "ts-mocha -p ./tsconfig.json test/**/*.test.ts",
+    "test": "export $(cat test/.env.test | xargs) && ts-mocha -p ./tsconfig.json test/**/*.test.ts",
     "test:watch": "NODE_ENV=local yarn test -w --watch-files '**/*.ts'"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/arcxmoney/liquidator.git"
   },
-  "author": "ARCx",
+  "author": "Classicus",
   "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/arcxmoney/liquidator/issues"
-  },
-  "homepage": "https://github.com/arcxmoney/liquidator#readme",
   "dependencies": {
     "@arcxgame/contracts": "^10.10.0",
     "axios": "^0.27.2",
