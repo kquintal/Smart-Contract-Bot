@@ -1,5 +1,8 @@
-# Exterminator
-The place where we exterminate DeFi users that are taking too much risk.
+> Forked from [dYdX's Liquidator bot](https://github.com/dydxprotocol/liquidator)
+
+# ARCx Liquidator
+
+Bot to automatically liquidate undercollateralized ARCx Sapphire vaults.
 
 ## Usage
 
@@ -7,9 +10,9 @@ Ensure you have the **required** environment variables specified below inside th
 
 ```
 yarn build && yarn start
-````
+```
 
-## Previous Description
+## Overview
 
 This service will automatically liquidate undercollateralized ARCx Sapphire vaults.
 
