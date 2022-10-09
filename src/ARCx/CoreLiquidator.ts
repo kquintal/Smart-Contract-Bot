@@ -1,29 +1,42 @@
-// import { PassportScoreProof } from '@arcxgame/contracts/dist/arc-types/sapphireCore'
 import { PassportScoreProof } from '@arcxgame/contracts/dist/arc-types/sapphireCore'
 import { SapphireCoreContracts } from '@arcxgame/contracts/dist/src/SapphireArc'
 import { BaseERC20Factory, FlashLiquidatorFactory } from '@arcxgame/contracts/dist/src/typings'
 import { Filter } from '@ethersproject/abstract-provider'
 import { BigNumber, ContractTransaction, utils } from 'ethers'
-import { checkLiquidatable } from './helpers/checkLiquidatable'
-import { delay } from './lib/delay'
-import ethMulticaller from './lib/ethMulticaller'
-import { loadContract } from './lib/loadContracts'
-import logger from './lib/logger'
-import { CoreParameters } from './types/coreParameters'
+import { checkLiquidatable } from '../helpers/checkLiquidatable'
+import ethMulticaller from '../lib/ethMulticaller'
+import { loadContract } from '../lib/loadContracts'
+import logger from '../lib/logger'
+import { CoreParameters } from '../types/coreParameters'
 
 export default class CoreLiquidator {
-  knownBorrowers: string[] = []
+  activeBorrowers: string[] = []
   lastBlockScanned: number = 0
-  lockPolling: boolean = false
-  // readonly liquidatorContract: FlashLiquidator
 
-  constructor(public coreContracts: SapphireCoreContracts, private _contractCreationTx: string) {}
+  constructor (public coreContracts: SapphireCoreContracts, private _contractCreationTx: string) { }
 
-  async start() {
+  async init() {
     await this._initializeLastblockScanned()
-    logger.info('Watching core', this.coreContracts.core.address, '...')
-    this._pollVaults()
+    await this._checkBalance()
   }
+
+  async pollVaults() {
+    try {
+
+      const currentBlock = await this.coreContracts.core.provider.getBlockNumber()
+
+      const liquidatableVaults = await this.getLiquidatableVaults()
+      if (liquidatableVaults.length > 0) {
+        await this.liquidateVaults(liquidatableVaults)
+      }
+
+      this.lastBlockScanned = currentBlock
+
+    } catch (error) {
+      logger.error('CoreLiquidator::_pollVaults:', error)
+    }
+  }
+
 
   private async _initializeLastblockScanned() {
     if (this.lastBlockScanned === 0) {
@@ -36,14 +49,17 @@ export default class CoreLiquidator {
   }
 
   async getLiquidatableVaults(): Promise<PassportScoreProof[]> {
-    const newBorrowers = await this._getNewBorrowers()
-    this.knownBorrowers = this.knownBorrowers.concat(newBorrowers)
 
-    const coreParameters = await this._getCoreParameters()
+    const [newBorrowers, coreParameters] = await Promise.all([
+      this._getNewBorrowers(),
+      this._getCoreParameters(),
+    ])
+
+    await this._updateActiveBorrowers(newBorrowers)
 
     const liquidatableVaults = (
       await Promise.all(
-        this.knownBorrowers.map((account) =>
+        this.activeBorrowers.map((account) =>
           checkLiquidatable(account, this.coreContracts.core, coreParameters),
         ),
       )
@@ -66,28 +82,31 @@ export default class CoreLiquidator {
       signer,
     )
 
-    // Record the current user's balance
+    // Record the liquidator's balance before liquidations
     const { balance: preLiquidationBalance, decimals } = await this._getLiquidatorBalance()
 
-    // liquidate the vaults one by one
-    const txs: ContractTransaction[] = []
-    for (const vaultProof of proofOfVaults) {
-      const tx = await flashLiquidator.liquidate(
-        this.coreContracts.core.address,
-        vaultProof.account,
-        vaultProof,
-        {
-          gasPrice: await signer.getGasPrice(),
-          gasLimit: 1000000,
-        },
+    // liquidate the vaults
+    const txSubmitted: ContractTransaction[] = []
+    await Promise.all(
+      proofOfVaults.map(async (vaultProof) => {
+        const txReceipt = await flashLiquidator.liquidate(
+          this.coreContracts.core.address,
+          vaultProof.account,
+          vaultProof,
+          {
+            gasPrice: await signer.getGasPrice(),
+            gasLimit: 2000000,
+          },
+        )
+        txSubmitted.push(txReceipt)
+        logger.info(
+          `Liquidating vault ${vaultProof.account}... tx hash: https://polygonscan.com/tx/${txReceipt.hash}`,
+        )
+      }
       )
-      txs.push(tx)
-      logger.info(
-        `Liquidating vault ${vaultProof.account}... tx hash: https://polygonscan.com/tx/${tx.hash}`,
-      )
-    }
+    )
 
-    await Promise.all(txs.map((tx) => tx.wait()))
+    await Promise.all(txSubmitted.map((tx) => tx.wait()))
 
     const { balance: postLiquidationBalance } = await this._getLiquidatorBalance()
     logger.info(
@@ -96,45 +115,6 @@ export default class CoreLiquidator {
         decimals,
       )}`,
     )
-  }
-
-  private async _pollVaults() {
-    while (true) {
-      if (!this.lockPolling) {
-        this.lockPolling = true
-
-        await this._checkBalance()
-
-        logger.debug('Polling vaults...')
-        try {
-          const liquidatableVaults = await this.getLiquidatableVaults()
-          if (liquidatableVaults.length > 0) {
-            logger.info(
-              `${liquidatableVaults.length} can be liquidated! These are: ${liquidatableVaults
-                .map((v) => v.account)
-                .join(', ')}`,
-            )
-
-            await this.liquidateVaults(liquidatableVaults)
-          }
-
-          const nextPollingTimestamp = Math.round(
-            (Date.now() + parseInt(process.env.POLL_INTERVAL_MS!)) / 1000,
-          )
-          const nrActiveBorrowers = await this._getActiveBorrowersCount()
-          logger.debug(`[${this.coreContracts.core.address}] Polling complete`)
-          logger.info(
-            `[${this.coreContracts.core.address}] There are currently ${this.knownBorrowers.length} known borrowers and **${nrActiveBorrowers} active borrowers**.\nNext polling is in <t:${nextPollingTimestamp}:R>`,
-          )
-        } catch (error) {
-          logger.error('CoreLiquidator::_pollVaults:', error)
-        } finally {
-          this.lockPolling = false
-        }
-      }
-
-      await delay(parseInt(process.env.POLL_INTERVAL_MS!))
-    }
   }
 
   private async _getCoreParameters(): Promise<CoreParameters> {
@@ -188,7 +168,7 @@ export default class CoreLiquidator {
     }
     const logs = await provider.getLogs(borrowLogFilter)
     const borrowers = this._getUniqueBorrowersFromLogs(logs)
-    return borrowers.filter((borrower) => !this.knownBorrowers.includes(borrower))
+    return borrowers.filter((borrower) => !this.activeBorrowers.includes(borrower))
   }
 
   private _getUniqueBorrowersFromLogs(logs: any[]): string[] {
@@ -217,25 +197,27 @@ export default class CoreLiquidator {
     const balance = await this.coreContracts.core.signer.getBalance()
 
     if (balance.lt(utils.parseEther('0.5'))) {
-      logger.info(
-        `<@${process.env.DISCORD_NOTIFICATION_ID}> I have less than 0.5 MATIC (currently at ${utils.formatEther(
+      logger.error(
+        `<@${process.env.DISCORD_NOTIFICATION_ID}> Exterminator has less than 0.5 MATIC (currently at ${utils.formatEther(
           balance,
-        )}). Please top me up sempai 😩!`,
+        )})!`,
       )
     }
   }
 
-  private async _getActiveBorrowersCount(): Promise<number> {
-    let nrActiveBorrowers = 0
+  private async _updateActiveBorrowers(newBorrowers: string[]): Promise<void> {
     const core = this.coreContracts.core
 
-    for (const vaultAddy of this.knownBorrowers) {
-      const vault = await core.vaults(vaultAddy)
-      if (vault.normalizedBorrowedAmount.gt(0)) {
-        nrActiveBorrowers++
-      }
-    }
+    const borrowersToCheck = [...new Set(this.activeBorrowers.concat(newBorrowers))]
+    this.activeBorrowers = []
 
-    return nrActiveBorrowers
+    await Promise.all(
+      borrowersToCheck.map(async (borrower) => {
+        const { normalizedBorrowedAmount } = await core.vaults(borrower)
+        if (!normalizedBorrowedAmount.isZero()) {
+          this.activeBorrowers.push(borrower)
+        }
+      }),
+    )
   }
 }

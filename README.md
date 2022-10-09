@@ -29,5 +29,4 @@ It loads all the Sapphire Core contracts from the ARCx core contracts package, t
 |-|-|
 |WALLET_PRIVATE_KEY|**REQUIRED** Ethereum private key the dYdX account owner that will do the liquidations. Make sure that "0x" is at the start of it (MetaMask exports private keys without it).|
 |POLYGON_RPC_URL|**REQUIRED** The URL of the Polygon node to use|
-|POLL_INTERVAL_MS|The interval in milliseconds specifying how often to check the vaults for liquidation. (defaults to 1h, ie `3600000`)
 |DISCORD_WEBHOOK_URL|A webhook URL if you'd like this bot to publish its `logger.info()` calls to a discord channel.

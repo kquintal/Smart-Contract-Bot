@@ -1,20 +1,13 @@
 import { Vault } from '@arcxgame/contracts/dist/arc-types/sapphireCore'
 import { SapphireCoreV1Factory } from '@arcxgame/contracts/dist/src/typings'
-import chai from 'chai'
-import dotenv from 'dotenv-flow'
-import { solidity } from 'ethereum-waffle'
+import { expect } from 'chai'
 import { BigNumber, providers } from 'ethers'
 import ethMulticaller from '../src/lib/ethMulticaller'
 import { loadContract } from '../src/lib/loadContracts'
 
-chai.use(solidity)
-const expect = chai.expect
-
-dotenv.config()
-
 describe('ethMulticaller', () => {
   it('makes multiple calls to the core', async () => {
-    const provider = new providers.JsonRpcProvider(process.env.POLYGON_RPC_URL)
+    const provider = new providers.JsonRpcProvider('https://polygon-rpc.com')
     const signer = provider.getSigner(0)
 
     const wethCoreAddress = loadContract({
@@ -25,12 +18,12 @@ describe('ethMulticaller', () => {
 
     const core = SapphireCoreV1Factory.connect(wethCoreAddress, signer)
 
-    const [highCRatio, protocol] = await ethMulticaller<[BigNumber, Vault]>(core, [
-      { name: 'highCollateralRatio', params: [] },
+    const [creditScore, limitScore] = await ethMulticaller<[BigNumber, Vault]>(core, [
       { name: 'getProofProtocol', params: [0] },
+      { name: 'getProofProtocol', params: [1] },
     ])
 
-    expect(highCRatio).to.be.gt(0)
-    expect(protocol).to.be.eq('arcx.credit')
+    expect(creditScore).to.be.eq('arcx.credit')
+    expect(limitScore).to.be.eq('arcx.limit.137.weth.a')
   })
 })
