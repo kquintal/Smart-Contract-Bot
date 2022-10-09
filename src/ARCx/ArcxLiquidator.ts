@@ -14,7 +14,7 @@ export class ArcxLiquidator {
 
   protected constructor (private signer: Wallet) { }
 
-  static getInstance (signer: Wallet): ArcxLiquidator {
+  static getInstance(signer: Wallet): ArcxLiquidator {
     if (!this._instance) {
       this._instance = new ArcxLiquidator(signer)
     }
@@ -22,7 +22,7 @@ export class ArcxLiquidator {
   }
 
 
-  async start () {
+  async start() {
     // Get polygon core contracts
     const coreContracts = loadContracts({ network: "polygon", name: "SapphireCoreProxy", });
 
@@ -70,7 +70,7 @@ export class ArcxLiquidator {
     }, Number(this.POLL_INTERVAL_MS));
   }
 
-  private async pollVaults (coreLiquidators: CoreLiquidator[]) {
+  private async pollVaults(coreLiquidators: CoreLiquidator[]) {
     await Promise.all(
       coreLiquidators.map(async (liquidator) => {
         await liquidator.pollVaults();
@@ -78,7 +78,7 @@ export class ArcxLiquidator {
     );
   }
 
-  private async report (coreLiquidators: CoreLiquidator[]) {
+  private async report(coreLiquidators: CoreLiquidator[]) {
     const now = new Date()
     console.log({ lastReportDate: this.lastReportDate.getTime(), now: now.getTime(), diff: now.getTime() - this.lastReportDate.getTime() });
     if (now.getTime() - this.lastReportDate.getTime() < this.REPORT_INTERVAL_MS) {

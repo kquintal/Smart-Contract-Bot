@@ -1,6 +1,6 @@
 import mainnetAddresses from '@arcxgame/contracts/deployments/mainnet/deployed.json'
-import polygonAddresses from '@arcxgame/contracts/deployments/polygon/deployed.json'
 import mumbaiAddresses from '@arcxgame/contracts/deployments/mumbai/deployed.json'
+import polygonAddresses from '@arcxgame/contracts/deployments/polygon/deployed.json'
 import rinkebyAddresses from '@arcxgame/contracts/deployments/rinkeby/deployed.json'
 import { ContractDetails, LoadContractParams } from '@arcxgame/contracts/dist/deployments/src'
 import _ from 'lodash'
