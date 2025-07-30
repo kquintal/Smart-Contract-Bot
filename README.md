@@ -1,5 +1,6 @@
-# Exterminator
-The place where we exterminate DeFi users that are taking too much risk.
+# Smart Contract Bot - Loan Closer
+
+The place where we close DeFi contracts for positions that are over their risk thresholds. This service will automatically liquidate undercollateralized ARCx Sapphire vaults.
 
 ## Usage
 
@@ -8,10 +9,6 @@ Ensure you have the **required** environment variables specified below inside th
 ```
 yarn build && yarn start
 ````
-
-## Previous Description
-
-This service will automatically liquidate undercollateralized ARCx Sapphire vaults.
 
 It loads all the Sapphire Core contracts from the ARCx core contracts package, then continuously watches the opened vaults every hour, unless `REFRESH_INTERVAL` specifies otherwise. When a vault can be liquidated, it executes the `liquidate()` function on the ARCx liquidation contract (TODO link), that:
 
